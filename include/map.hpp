@@ -9,7 +9,7 @@
 
 #include <Eigen/Dense>
 #include <robin_map.h>
-
+#include <iomanip> // for set precission
 
 
 // Your project's custom headers
@@ -175,7 +175,7 @@ namespace stateestimate {
             // ########################################################################
             // searchNeighbors
             // ########################################################################
-            ArrayVector3d Map::searchNeighbors(const Eigen::Vector3d& point, int nb_voxels_visited, double size_voxel_map,
+            ArrayVector3d searchNeighbors(const Eigen::Vector3d& point, int nb_voxels_visited, double size_voxel_map,
                                                     int max_num_neighbors, int threshold_voxel_capacity = 1, std::vector<Voxel>* voxels = nullptr) {
                 // Clear the optional output vector if it's provided.
                 if (voxels != nullptr) voxels->reserve(max_num_neighbors);

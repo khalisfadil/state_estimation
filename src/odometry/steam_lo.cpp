@@ -519,11 +519,11 @@ namespace  stateestimate{
 
 #ifdef DEBUG
         // Initialize timers for performance debugging if enabled
-        std::vector<std::pair<std::string, std::unique_ptr<finalicp::Stopwatch<>>>> timer;
-        timer.emplace_back("initialization ..................... ", std::make_unique<finalicp::Stopwatch<>>(false));
-        timer.emplace_back("gridsampling ....................... ", std::make_unique<finalicp::Stopwatch<>>(false));
-        timer.emplace_back("icp ................................ ", std::make_unique<finalicp::Stopwatch<>>(false));
-        timer.emplace_back("updateMap .......................... ", std::make_unique<finalicp::Stopwatch<>>(false));
+        std::vector<std::pair<std::string, std::unique_ptr<Stopwatch<>>>> timer;
+        timer.emplace_back("initialization ..................... ", std::make_unique<Stopwatch<>>(false));
+        timer.emplace_back("gridsampling ....................... ", std::make_unique<Stopwatch<>>(false));
+        timer.emplace_back("icp ................................ ", std::make_unique<Stopwatch<>>(false));
+        timer.emplace_back("updateMap .......................... ", std::make_unique<Stopwatch<>>(false));
 #endif
         // Step 1: Add new frame to trajectory
         // Create a new entry in the trajectory vector for the current frame
@@ -995,8 +995,8 @@ namespace  stateestimate{
         using namespace steam::se3;
         using namespace steam::traj;
 
-        Time begin_slam_time(trajectory_[update_frame].begin_timestamp); // Fixed: Use finalicp::traj::Time
-        Time end_slam_time(trajectory_[update_frame].end_timestamp);     // Fixed: Use finalicp::traj::Time
+        Time begin_slam_time(trajectory_[update_frame].begin_timestamp); // 
+        Time end_slam_time(trajectory_[update_frame].end_timestamp);     // 
 
         // Add trajectory states
         size_t num_states = 0;
@@ -1230,14 +1230,14 @@ namespace  stateestimate{
         // Step 2: Set up timers to measure performance (if debugging is enabled)
         // timer stores pairs of labels (e.g., "Initialization") and Stopwatch objects
 #ifdef DEBUG
-        std::vector<std::pair<std::string, std::unique_ptr<finalicp::Stopwatch<>>>> timer;
+        std::vector<std::pair<std::string, std::unique_ptr<Stopwatch<>>>> timer;
         // Add timers for different ICP phases (only if debug_print is true)
-        timer.emplace_back("Update Transform ............... ", std::make_unique<finalicp::Stopwatch<>>(false));
-        timer.emplace_back("Association .................... ", std::make_unique<finalicp::Stopwatch<>>(false));
-        timer.emplace_back("Optimization ................... ", std::make_unique<finalicp::Stopwatch<>>(false));
-        timer.emplace_back("Alignment ...................... ", std::make_unique<finalicp::Stopwatch<>>(false));
-        timer.emplace_back("Initialization ................. ", std::make_unique<finalicp::Stopwatch<>>(false));
-        timer.emplace_back("Marginalization ................ ", std::make_unique<finalicp::Stopwatch<>>(false));
+        timer.emplace_back("Update Transform ............... ", std::make_unique<Stopwatch<>>(false));
+        timer.emplace_back("Association .................... ", std::make_unique<Stopwatch<>>(false));
+        timer.emplace_back("Optimization ................... ", std::make_unique<Stopwatch<>>(false));
+        timer.emplace_back("Alignment ...................... ", std::make_unique<Stopwatch<>>(false));
+        timer.emplace_back("Initialization ................. ", std::make_unique<Stopwatch<>>(false));
+        timer.emplace_back("Marginalization ................ ", std::make_unique<Stopwatch<>>(false));
 #endif
 
         // Step 3: Start the initialization timer (timer[4] = "Initialization")
@@ -1262,9 +1262,7 @@ namespace  stateestimate{
         std::vector<BaseCostTerm::ConstPtr> prior_cost_terms; // Prior constraints
         std::vector<BaseCostTerm::ConstPtr> meas_cost_terms; // Point cloud measurements
         std::vector<BaseCostTerm::ConstPtr> imu_cost_terms; // IMU measurements
-        // std::vector<finalicp::BaseCostTerm::ConstPtr> pose_meas_cost_terms; // Pose measurements
         std::vector<BaseCostTerm::ConstPtr> imu_prior_cost_terms; // IMU bias priors
-        // std::vector<finalicp::BaseCostTerm::ConstPtr> Ti2m_prior_cost_terms; // Ti2m priors
 
         // Step 6: Track indices for trajectory variables
         // prev_trajectory_var_index points to the last state in trajectory_vars_
