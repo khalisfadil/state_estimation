@@ -63,5 +63,4 @@ template <class clock = std::chrono::steady_clock>
             typename clock::time_point reference_ = clock::now();
             typename clock::duration accumulated_ = typename clock::duration(0);
     };
-
 }  // namespace stateestimate
