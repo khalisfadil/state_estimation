@@ -165,6 +165,8 @@ namespace stateestimate {
 
             Trajectory trajectory() override;
             RegistrationSummary registerFrame(const DataFrame& frame) override;
+            void getResults(const std::string& timestamp) override;
+            void initializeInitialPose(const Eigen::Matrix4d& T) override;
 
         private:
             inline double AngularDistance(const Eigen::Matrix3d& rota, const Eigen::Matrix3d& rotb);
@@ -179,9 +181,6 @@ namespace stateestimate {
             void updateMap(int index_frame, int update_frame);
             bool icp(int index_frame, std::vector<Point3D>& keypoints, const std::vector<steam::IMUData>& imu_data_vec);
 
-            void getResults(const std::string& timestamp);
-            void initializeInitialPose(const Eigen::Matrix4d& T);
-            
         private:
             Options options_;
             steam::se3::SE3StateVar::Ptr Tb2s_var_ = nullptr;  // robot to sensor transformation as a slam variable

@@ -87,6 +87,8 @@ namespace stateestimate {
 
             // Registers a new Frame to the Map with an initial estimate
             virtual RegistrationSummary registerFrame(const DataFrame& frame) = 0;
+            virtual void initializeInitialPose(const Eigen::Matrix4d& T) = 0;
+            virtual void getResults(const std::string& timestamp) = 0;
 
         protected:
             Trajectory trajectory_; // std::vector<TrajectoryFrame>; in trajectory.hpp
