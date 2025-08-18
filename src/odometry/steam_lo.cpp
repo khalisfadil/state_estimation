@@ -1013,8 +1013,6 @@ namespace  stateestimate{
         }
 
 #ifdef DEBUG
-        std::cout << "[004# MAP DEBUG | Frame " << index_frame << "] " << "Building interpolation trajectory" << std::endl;
-#endif
         std::cout << "[005# MAP DEBUG | Frame " << index_frame << "] " << "Trajectory covers time range (inclusive): " << std::fixed << std::setprecision(12) 
                 << begin_slam_time.seconds() << " - " << end_slam_time.seconds() 
                 << ", with num states: " << num_states << std::endl;
