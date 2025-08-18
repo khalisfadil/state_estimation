@@ -2172,10 +2172,10 @@ namespace  stateestimate{
 
             // --- [ADD DEBUG CHECKS AFTER CALCULATING DIFFS] ---
 #ifdef DEBUG
-            if (!std::isfinite(diff_rot) || !std::isfinite(diff_trans) || !std::isfinite(diff_vel) || !std::isfinite(diff_acc)) {
+            if (!std::isfinite(diff_rot) || !std::isfinite(diff_trans) || !std::isfinite(diff_vel)) {
                 std::cout << "[069# ICP DEBUG | Frame " << index_frame << "] " << "CRITICAL: Non-finite difference detected after optimization! The state is likely corrupted with NaNs." << std::endl;
             }
-            std::cout << "[070# ICP DEBUG | Frame " << index_frame << "] " << "State Change   | d_rot: " << diff_rot << ", d_trans: " << diff_trans << ", d_vel: " << diff_vel << ", d_acc: " << diff_acc << std::endl;
+            std::cout << "[070# ICP DEBUG | Frame " << index_frame << "] " << "State Change   | d_rot: " << diff_rot << ", d_trans: " << diff_trans << ", d_vel: " << diff_vel << std::endl;
             std::cout << "[071# ICP DEBUG | Frame " << index_frame << "] " << "End Pose (t)   | " << current_estimate.end_t.transpose() << std::endl;
 #endif
 
