@@ -130,5 +130,5 @@ namespace stateestimate {
 
 } // namespace stateestimate
 
-#include <odometry/steam_lio.hpp> // without this, the chef never shows up to work
+// #include <odometry/steam_lio.hpp> // without this, the chef never shows up to work
 #include <odometry/steam_lo.hpp>
