@@ -57,7 +57,7 @@ namespace stateestimate {
         }
 
 
-        // 2. The required 'equal' method for TBB (which you added correctly).
+        // 2. The required 'equal' method for (which you added correctly).
         static bool equal(const Voxel& v1, const Voxel& v2) {
             return v1 == v2;
         }
