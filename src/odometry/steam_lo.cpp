@@ -779,7 +779,7 @@ namespace  stateestimate{
 #ifdef DEBUG
             // [ADDED DEBUG] Print all calculated timestamps before assignment
             std::cout << "[001# INIT TS DEBUG | Frame " << index_frame << "] " << "Frame " << index_frame << ": min=" << std::fixed << min_timestamp
-                    << ", max=" << max_timestamp << ", mid=" << mid_timestamp << std::endl;
+                    << ", max=" << max_timestamp << std::endl;
             
             if(const_frame.timestamp < min_timestamp){
                 std::cerr << "\n[002# INIT TS DEBUG | Frame " << index_frame << "]  CRITICAL: frame timestamp is not correctly set. \n" << std::endl;
@@ -1013,8 +1013,8 @@ namespace  stateestimate{
         }
 
 #ifdef DEBUG
-        std::cout << "[004# MAP DEBUG | Frame " << index_frame << "] " << "Building interpolation trajectory from state index " << start_idx 
-                << " to " << (start_idx + num_states - 1) << " (" << num_states << " states)." << std::endl;
+        std::cout << "[004# MAP DEBUG | Frame " << index_frame << "] " << "Building interpolation trajectory" << std::endl;
+#endif
         std::cout << "[005# MAP DEBUG | Frame " << index_frame << "] " << "Trajectory covers time range (inclusive): " << std::fixed << std::setprecision(12) 
                 << begin_slam_time.seconds() << " - " << end_slam_time.seconds() 
                 << ", with num states: " << num_states << std::endl;
@@ -2053,19 +2053,6 @@ namespace  stateestimate{
                 meas_cost_terms.emplace_back(cost);
             }
         } 
-
-#ifdef DEBUG
-        if (i == 0) {
-            std::cout << "[045# ICP DEBUG | Frame " << index_frame << "] " << "Association for point 0:" << std::endl;
-            std::cout << "[046# ICP DEBUG | Frame " << index_frame << "] " << "Point coordinate: " << pt_keypoint.transpose() << std::endl;
-            std::cout << "[047# ICP DEBUG | Frame " << index_frame << "] " << "Neighbors found: " << vector_neighbors.size() << std::endl;
-            std::cout << "[048# ICP DEBUG | Frame " << index_frame << "] " << "Neighborhood a2D: " << neighborhood.a2D << std::endl;
-            std::cout << "[049# ICP DEBUG | Frame " << index_frame << "] " << "Dist to plane: " << dist_to_plane << std::endl;
-            if (!std::isfinite(neighborhood.a2D) || !std::isfinite(dist_to_plane)) {
-                std::cout << "[050# ICP DEBUG | Frame " << index_frame << "] " << "CRITICAL: NaN detected in neighborhood/distance calculation!" << std::endl;
-            }
-        }
-#endif
 
 #if USE_P2P_SUPER_COST_TERM
             N_matches = p2p_matches.size();
