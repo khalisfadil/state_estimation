@@ -33,7 +33,7 @@ namespace  stateestimate{
                 );
             voxel_map.try_emplace(voxel_key, frame[i]);
         } 
-
+        frame.clear();
         std::transform(voxel_map.begin(), voxel_map.end(), std::back_inserter(frame),
                  [](const auto &pair) { return pair.second; });
         frame.shrink_to_fit();
