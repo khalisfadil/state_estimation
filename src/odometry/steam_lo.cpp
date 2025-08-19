@@ -328,10 +328,10 @@ namespace  stateestimate{
                     parsed_options.qg_diag(i) = odometry_options["qg_diag"][i].get<double>();
                 }
             }
-            if (odometry_options.contains("Tm2b_init") && odometry_options["Tm2b_init"].is_array() && odometry_options["Tm2b_init"].size() == 16) {
+            if (odometry_options.contains("Tb2m_init") && odometry_options["Tb2m_init"].is_array() && odometry_options["Tb2m_init"].size() == 16) {
                 for (int i = 0; i < 4; ++i) {
                     for (int j = 0; j < 4; ++j) {
-                        parsed_options.Tm2b_init(i, j) = odometry_options["Tm2b_init"][i * 4 + j].get<double>();
+                        parsed_options.Tb2m_init(i, j) = odometry_options["Tb2m_init"][i * 4 + j].get<double>();
                     }
                 }
             }
@@ -405,13 +405,21 @@ namespace  stateestimate{
                 constexpr double dt = 0.01;
                 for (double time = begin_time; time <= end_time; time += dt) {
                     Time traj_time(time);
+                    // const Eigen::Matrix4d begin_Tb2m = inverse(full_trajectory->getPoseInterpolator(traj_time))->evaluate().matrix();
+
                     const auto Tm2b = full_trajectory->getPoseInterpolator(traj_time)->value().matrix();
+                    const auto Tb2m = Tm2b.inverse();
                     const auto wb2m_inr = full_trajectory->getVelocityInterpolator(traj_time)->value();
+
+                    if ((Tm2b.block<3, 3>(0, 0) * Tm2b.block<3, 3>(0, 0).transpose() - Eigen::Matrix3d::Identity()).norm() > 1e-6) {
+                        std::cerr << "[RESULT] WARNING: Tm2b rotation matrix is not orthogonal!" << std::endl;
+                    }
+
                     buffer << traj_time.nanosecs() << " "
-                        << Tm2b(0, 0) << " " << Tm2b(0, 1) << " " << Tm2b(0, 2) << " " << Tm2b(0, 3) << " "
-                        << Tm2b(1, 0) << " " << Tm2b(1, 1) << " " << Tm2b(1, 2) << " " << Tm2b(1, 3) << " "
-                        << Tm2b(2, 0) << " " << Tm2b(2, 1) << " " << Tm2b(2, 2) << " " << Tm2b(2, 3) << " "
-                        << Tm2b(3, 0) << " " << Tm2b(3, 1) << " " << Tm2b(3, 2) << " " << Tm2b(3, 3) << " "
+                        << Tb2m(0, 0) << " " << Tb2m(0, 1) << " " << Tb2m(0, 2) << " " << Tb2m(0, 3) << " "
+                        << Tb2m(1, 0) << " " << Tb2m(1, 1) << " " << Tb2m(1, 2) << " " << Tb2m(1, 3) << " "
+                        << Tb2m(2, 0) << " " << Tb2m(2, 1) << " " << Tb2m(2, 2) << " " << Tb2m(2, 3) << " "
+                        << Tb2m(3, 0) << " " << Tb2m(3, 1) << " " << Tb2m(3, 2) << " " << Tb2m(3, 3) << " "
                         << wb2m_inr(0) << " " << wb2m_inr(1) << " " << wb2m_inr(2) << " "
                         << wb2m_inr(3) << " " << wb2m_inr(4) << " " << wb2m_inr(5) << "\n";
                 }
@@ -425,7 +433,7 @@ namespace  stateestimate{
                     std::cerr << "[RESULT] ERROR: Failed to open map file for writing: " << pointcloud_filename << std::endl;
                     return;
                 }
-                map_.getMap(pointcloud_file);
+                map_.getMap(pointcloud_file); // print point in map frame.
             };
 
             // --- MODIFICATION: Execute both tasks sequentially instead of in parallel ---
@@ -447,7 +455,7 @@ namespace  stateestimate{
     // ########################################################################
     
     void lidarodom::initializeInitialPose(const Eigen::Matrix4d& T) {
-        options_.Tm2b_init = T;
+        options_.Tb2m_init = T;
     }
 
     // ########################################################################
@@ -1137,7 +1145,7 @@ namespace  stateestimate{
 
         // Initialize state variables
         const auto loss_func = L2LossFunc::MakeShared();
-        const auto Tm2b_init = SE3StateVar::MakeShared(lgmath::se3::Transformation());
+        const auto Tm2b_init = SE3StateVar::MakeShared(lgmath::se3::Transformation()); // define as identity
         lgmath::se3::Transformation Ti2m;
         const auto Ti2m_var = SE3StateVar::MakeShared(Ti2m);
         Tm2b_init->locked() = true;
@@ -1838,7 +1846,7 @@ namespace  stateestimate{
             for (int jj = 0; jj < static_cast<int>(keypoints.size()); jj++) {
                 auto& keypoint = keypoints[jj];
                 const Eigen::Matrix4d& Tb2m = Tb2m_cache_map.at(keypoint.timestamp);
-                keypoint.pt = Tb2m.block<3, 3>(0, 0) * keypoint.raw_pt + Tb2m.block<3, 1>(0, 3); // Transform raw point
+                keypoint.pt = Tb2m.block<3, 3>(0, 0) * keypoint.raw_pt + Tb2m.block<3, 1>(0, 3); // Transform raw point into map frame
             }
         };
             
@@ -1891,12 +1899,19 @@ namespace  stateestimate{
             // #### This just transform the point from sensor to robot frame
             // sensor to robot frame is identity!
             const Eigen::Matrix4d Ts2b_mat = options_.Tb2s.inverse(); // Inverse sensor-to-robot transformation
-            
+            const double tolerance = 1e-6; // Define a small tolerance for floating-point comparison
+            if (!Ts2b_mat.isApprox(Eigen::Matrix4d::Identity(), tolerance)) {
+#ifdef  DEBUG
+                std::cout << "[036# ICP DEBUG | Frame " << index_frame << "] " << "Ts2b_mat is nearly identity. Ignore points sensor to body transform." << std::endl;
+#endif
 #pragma omp parallel for num_threads(options_.num_threads)
-            // Sequential: Transform keypoints one by one for small sizes
-            for (int i = 0; i < static_cast<int>(keypoints.size()); ++i) {
-                auto& keypoint = keypoints[i];
-                keypoint.raw_pt = Ts2b_mat.block<3, 3>(0, 0) * keypoint.raw_pt + Ts2b_mat.block<3, 1>(0, 3); // Transform raw point
+                // Handle the case where Ts2b_mat is not the identity matrix
+                // Sequential: Transform keypoints one by one for small sizes
+                for (int i = 0; i < static_cast<int>(keypoints.size()); ++i) {
+                    auto& keypoint = keypoints[i];
+                    keypoint.raw_pt = Ts2b_mat.block<3, 3>(0, 0) * keypoint.raw_pt + Ts2b_mat.block<3, 1>(0, 3); // Transform raw point
+                }
+                
             }
 
 #ifdef  DEBUG
@@ -1937,7 +1952,7 @@ namespace  stateestimate{
         for (int iter = 0; iter < options_.num_iters_icp; iter++) {
 #ifdef DEBUG
             // [DEBUG] Start of an ICP iteration
-            std::cout << "[036# ICP DEBUG | Frame " << index_frame << "] " << "--- Iteration " << iter << " ---" << std::endl;
+            std::cout << "[037# ICP DEBUG | Frame " << index_frame << "] " << "--- Iteration " << iter << " ---" << std::endl;
 #endif 
 #ifdef DEBUG
             timer[0].second->start();
@@ -1951,8 +1966,8 @@ namespace  stateestimate{
             const auto problem = [&]() -> Problem::Ptr {
                 if (swf_inside_icp) {
 #ifdef DEBUG
-                    std::cout << "[037# ICP DEBUG | Frame " << index_frame << "] " << "swf_inside_icp is true." << std::endl; 
-                    std::cout << "[038# ICP DEBUG | Frame " << index_frame << "] " << "problem: use SlidingWindowFilter." << std::endl; 
+                    std::cout << "[038# ICP DEBUG | Frame " << index_frame << "] " << "swf_inside_icp is true." << std::endl; 
+                    std::cout << "[039# ICP DEBUG | Frame " << index_frame << "] " << "problem: use SlidingWindowFilter." << std::endl; 
 #endif
                     // Use SlidingWindowFilter for sliding window optimization
                     return std::make_shared<SlidingWindowFilter>(*sliding_window_filter_);
@@ -1962,7 +1977,7 @@ namespace  stateestimate{
                     for (const auto& var : SLAM_STATE_VAR) {
                         problem->addStateVariable(var);
 #ifdef DEBUG
-                        std::cout << "[039# ICP DEBUG | Frame " << index_frame << "] " << "problem: use OptimizationProblem addStateVariable: " << var << std::endl; 
+                        std::cout << "[040# ICP DEBUG | Frame " << index_frame << "] " << "problem: use OptimizationProblem addStateVariable: " << var << std::endl; 
 #endif
                     }
                     return problem;
@@ -1972,12 +1987,12 @@ namespace  stateestimate{
             // Add prior cost terms to the problem
             SLAM_TRAJ->addPriorCostTerms(*problem);
 #ifdef DEBUG
-            std::cout << "[040# ICP DEBUG | Frame " << index_frame << "] " << "SLAM_TRAJ: addPriorCostTerms problem: " << std::endl;
+            std::cout << "[041# ICP DEBUG | Frame " << index_frame << "] " << "SLAM_TRAJ: addPriorCostTerms problem: " << std::endl;
 #endif
             for (const auto& prior_cost_term : prior_cost_terms) {
                 problem->addCostTerm(prior_cost_term);
 #ifdef DEBUG
-                std::cout << "[041# ICP DEBUG | Frame " << index_frame << "] " << "problem: addCostTerm prior_cost_term: " << std::endl;
+                std::cout << "[042# ICP DEBUG | Frame " << index_frame << "] " << "problem: addCostTerm prior_cost_term: " << std::endl;
 #endif
             }
 
@@ -1996,17 +2011,17 @@ namespace  stateestimate{
 
 #ifdef DEBUG
             // [DEBUG] Check if keypoint coordinates are finite before association
-            std::cout << "[042# ICP DEBUG | Frame " << index_frame << "] " << "Keypoint size for association: " << keypoints.size() << std::endl;
+            std::cout << "[043# ICP DEBUG | Frame " << index_frame << "] " << "Keypoint size for association: " << keypoints.size() << std::endl;
             bool keypoints_are_finite = true;
             for (size_t i = 0; i < keypoints.size(); ++i) {
                 if (!keypoints[i].pt.allFinite()) {
-                    std::cout << "[043# ICP DEBUG | Frame " << index_frame << "] " << "CRITICAL: Keypoint " << i << " coordinate is NOT finite before association!" << std::endl;
+                    std::cout << "[044# ICP DEBUG | Frame " << index_frame << "] " << "CRITICAL: Keypoint " << i << " coordinate is NOT finite before association!" << std::endl;
                     keypoints_are_finite = false;
                     break;
                 }
             }
             if (keypoints_are_finite) {
-                std::cout << "[044# ICP DEBUG | Frame " << index_frame << "] " << "All keypoint coordinates are finite before association." << std::endl;
+                std::cout << "[045# ICP DEBUG | Frame " << index_frame << "] " << "All keypoint coordinates are finite before association." << std::endl;
             }
 #endif
             ///################################################################################
@@ -2060,7 +2075,7 @@ namespace  stateestimate{
 
 #ifdef DEBUG
             // [ADDED DEBUG] Print the number of matches found before checking
-            std::cout << "[051# ICP DEBUG | Frame " << index_frame << "] " << "Found " << N_matches << " point-to-plane matches." << std::endl;
+            std::cout << "[046# ICP DEBUG | Frame " << index_frame << "] " << "Found " << N_matches << " point-to-plane matches." << std::endl;
 #endif
             p2p_super_cost_term->initP2PMatches();
 
@@ -2297,7 +2312,7 @@ namespace  stateestimate{
             const auto bias_intp_eval = VSpaceInterpolator<6>::MakeShared(curr_mid_slam_time, trajectory_vars_[i].imu_biases, trajectory_vars_[i].time, trajectory_vars_[i + 1].imu_biases, trajectory_vars_[i + 1].time);
             current_estimate.mid_b = bias_intp_eval->value();
 #ifdef DEBUG
-            std::cout << "[081# ICP DEBUG | Frame " << index_frame << "] " << "mid_Ti2m:\n" << current_estimate.mid_Ti2m << std::endl;
+            // std::cout << "[081# ICP DEBUG | Frame " << index_frame << "] " << "mid_Ti2m:\n" << current_estimate.mid_Ti2m << std::endl;
             std::cout << "[082# ICP DEBUG | Frame " << index_frame << "] " << "b_begin: " << trajectory_vars_[i].imu_biases->value().transpose() << std::endl;
             std::cout << "[083# ICP DEBUG | Frame " << index_frame << "] " << "b_end: " << trajectory_vars_[i + 1].imu_biases->value().transpose() << std::endl;
 #endif

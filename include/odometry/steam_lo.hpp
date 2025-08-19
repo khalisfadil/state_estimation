@@ -148,7 +148,7 @@ namespace stateestimate {
                 // Initial State Priors (for the very first frame)
                 // ----------------------------------------------------------------------------------
                 /// Programmatically set initial pose mean. Use setInitialPose() to populate this.
-                Eigen::Matrix<double, 4, 4> Tm2b_init = Eigen::Matrix<double, 4, 4>::Identity();
+                Eigen::Matrix<double, 4, 4> Tb2m_init = Eigen::Matrix<double, 4, 4>::Identity();
 
                 // ----------------------------------------------------------------------------------
                 // Map Management
