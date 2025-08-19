@@ -371,25 +371,32 @@ namespace  stateestimate{
     void lidarodom::getResults(const std::string& timestamp) {
         using namespace steam::traj;
 
+        
+#ifdef DEBUG
+        std::cout << "\n[000# RESULT]  ###################### START ####################. \n" << std::endl;
+        std::cout << "[001# RESULT] Saving final trajectory and map..." << std::endl;
+#endif
         // --- Safety Check: Don't do anything if there's no data ---
         if (trajectory_.empty() || trajectory_vars_.empty()) {
-            std::cout << "[RESULT] Trajectory is empty, skipping file write." << std::endl;
+#ifdef DEBUG
+            std::cout << "[002# RESULT] Trajectory is empty, skipping file write." << std::endl;
+#endif
             return;
         }
-
-        std::cout << "[RESULT] Saving final trajectory and map..." << std::endl;
-
         // --- Create filenames using the provided timestamp ---
         std::string trajectory_filename = options_.debug_path + "/trajectory_" + timestamp + ".txt";
         std::string pointcloud_filename = options_.debug_path + "/map_" + timestamp + ".txt";
 
         // --- Wrap file-writing logic in a try-catch block for maximum safety ---
         try {
+            Eigen::Matrix4d Tl2g = options_.Tb2m_init; //local to global
             // Define trajectory file writing task
             auto write_trajectory = [&]() {
                 std::ofstream trajectory_file(trajectory_filename, std::ios::out);
                 if (!trajectory_file.is_open()) {
-                    std::cerr << "[RESULT] ERROR: Failed to open trajectory file for writing: " << trajectory_filename << std::endl;
+#ifdef DEBUG
+                    std::cerr << "[003# RESULT] ERROR: Failed to open trajectory file for writing: " << trajectory_filename << std::endl;
+#endif
                     return;
                 }
 
@@ -403,23 +410,27 @@ namespace  stateestimate{
                 double begin_time = trajectory_.front().begin_timestamp;
                 double end_time = trajectory_.back().end_timestamp;
                 constexpr double dt = 0.01;
+
                 for (double time = begin_time; time <= end_time; time += dt) {
                     Time traj_time(time);
                     // const Eigen::Matrix4d begin_Tb2m = inverse(full_trajectory->getPoseInterpolator(traj_time))->evaluate().matrix();
 
                     const auto Tm2b = full_trajectory->getPoseInterpolator(traj_time)->value().matrix();
-                    const auto Tb2m = Tm2b.inverse();
+                    const auto Tb2ml = Tm2b.inverse();
+                    const auto Tb2mg = Tl2g * Tb2ml;
                     const auto wb2m_inr = full_trajectory->getVelocityInterpolator(traj_time)->value();
 
                     if ((Tm2b.block<3, 3>(0, 0) * Tm2b.block<3, 3>(0, 0).transpose() - Eigen::Matrix3d::Identity()).norm() > 1e-6) {
-                        std::cerr << "[RESULT] WARNING: Tm2b rotation matrix is not orthogonal!" << std::endl;
+#ifdef DEBUG
+                        std::cerr << "[004# RESULT] CRITICAL: Tm2b rotation matrix is not orthogonal!" << std::endl;
+#endif
                     }
 
                     buffer << traj_time.nanosecs() << " "
-                        << Tb2m(0, 0) << " " << Tb2m(0, 1) << " " << Tb2m(0, 2) << " " << Tb2m(0, 3) << " "
-                        << Tb2m(1, 0) << " " << Tb2m(1, 1) << " " << Tb2m(1, 2) << " " << Tb2m(1, 3) << " "
-                        << Tb2m(2, 0) << " " << Tb2m(2, 1) << " " << Tb2m(2, 2) << " " << Tb2m(2, 3) << " "
-                        << Tb2m(3, 0) << " " << Tb2m(3, 1) << " " << Tb2m(3, 2) << " " << Tb2m(3, 3) << " "
+                        << Tb2mg(0, 0) << " " << Tb2mg(0, 1) << " " << Tb2mg(0, 2) << " " << Tb2mg(0, 3) << " "
+                        << Tb2mg(1, 0) << " " << Tb2mg(1, 1) << " " << Tb2mg(1, 2) << " " << Tb2mg(1, 3) << " "
+                        << Tb2mg(2, 0) << " " << Tb2mg(2, 1) << " " << Tb2mg(2, 2) << " " << Tb2mg(2, 3) << " "
+                        << Tb2mg(3, 0) << " " << Tb2mg(3, 1) << " " << Tb2mg(3, 2) << " " << Tb2mg(3, 3) << " "
                         << wb2m_inr(0) << " " << wb2m_inr(1) << " " << wb2m_inr(2) << " "
                         << wb2m_inr(3) << " " << wb2m_inr(4) << " " << wb2m_inr(5) << "\n";
                 }
@@ -430,24 +441,37 @@ namespace  stateestimate{
             auto write_pointcloud = [&]() {
                 std::ofstream pointcloud_file(pointcloud_filename, std::ios::out);
                 if (!pointcloud_file.is_open()) {
-                    std::cerr << "[RESULT] ERROR: Failed to open map file for writing: " << pointcloud_filename << std::endl;
+#ifdef DEBUG
+                    std::cerr << "[005# RESULT] ERROR: Failed to open map file for writing: " << pointcloud_filename << std::endl;
+#endif
                     return;
                 }
-                map_.getMap(pointcloud_file); // print point in map frame.
+                map_.getMap(pointcloud_file, &Tl2g); // Pass the address of Tl2g // print point in map frame.
+                
             };
 
             // --- MODIFICATION: Execute both tasks sequentially instead of in parallel ---
-            std::cout << "[RESULT] Writing trajectory file..." << std::endl;
+#ifdef DEBUG
+            std::cout << "[006# RESULT] Writing trajectory file..." << std::endl;
+#endif
             write_trajectory();
-            std::cout << "[RESULT] Writing point cloud file..." << std::endl;
+#ifdef DEBUG
+            std::cout << "[007# RESULT] Writing point cloud file..." << std::endl;
+#endif
             write_pointcloud();
             // --- END MODIFICATION ---
-
-            std::cout << "[RESULT] Successfully saved results to " << options_.debug_path << std::endl;
+#ifdef DEBUG
+            std::cout << "[008# RESULT] Successfully saved results to " << options_.debug_path << std::endl;
+#endif
 
         } catch (const std::exception& e) {
-            std::cerr << "[RESULT] CRITICAL ERROR while saving results: " << e.what() << std::endl;
+#ifdef DEBUG
+            std::cerr << "[009# RESULT] CRITICAL ERROR while saving results: " << e.what() << std::endl;
+#endif
         }
+#ifdef DEBUG
+        std::cout << "\n[000# RESULT]  ###################### END ####################. \n" << std::endl;
+#endif
     }
 
     // ########################################################################

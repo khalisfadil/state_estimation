@@ -272,11 +272,23 @@ namespace stateestimate {
             // ########################################################################
             // dumpResult
             // ########################################################################
-            void getMap(std::ostream& os, int precision = 12) const {
+            void getMap(std::ostream& os, const Eigen::Matrix4d* T_l2g = nullptr, int precision = 12) const {
                 os << std::fixed << std::setprecision(precision);
-                for (const auto& [_, block] : voxel_map_) {
-                    for (const auto& point : block.points) {
-                        os << point.x() << " " << point.y() << " " << point.z() << "\n";
+                if (T_l2g) {
+                    Eigen::Affine3d transform(*T_l2g);
+                    for (const auto& [_, block] : voxel_map_) {
+                        for (const auto& point : block.points) {
+                            Eigen::Vector4d point_homogeneous(point.x(), point.y(), point.z(), 1.0);
+                            Eigen::Vector4d point_global_homogeneous = *T_l2g * point_homogeneous;
+                            Eigen::Vector3d point_global = point_global_homogeneous.head<3>();
+                            os << point_global.x() << " " << point_global.y() << " " << point_global.z() << "\n";
+                        }
+                    }
+                } else {
+                    for (const auto& [_, block] : voxel_map_) {
+                        for (const auto& point : block.points) {
+                            os << point.x() << " " << point.y() << " " << point.z() << "\n";
+                        }
                     }
                 }
             }
