@@ -1640,9 +1640,10 @@ namespace  stateestimate{
             // Collect state variables to marginalize (from to_marginalize_ up to marg_time)
             std::vector<StateVarBase::Ptr> MAG_VAR;
             int NUM_STATES = 0;
+#ifdef DEBUG
             const double begin_marg_time = trajectory_vars_.at(to_marginalize_).time.seconds();
+#endif
             double end_marg_time = trajectory_vars_.at(to_marginalize_).time.seconds();
-
             // Define the marginalization time based on delay_adding_points
             const double marg_time = trajectory_.at(index_frame - options_.delay_adding_points - 1).end_timestamp;
             Time marg_slam_time(marg_time);
@@ -2342,11 +2343,10 @@ namespace  stateestimate{
 #endif
         }
 
-        const auto w = SLAM_TRAJ->getVelocityInterpolator(curr_end_slam_time)->evaluate();
-
                 // Step 54: Validate final estimate parameters
         // Ensures keypoints, velocities, and accelerations are valid
 #ifdef DEBUG
+        const auto w = SLAM_TRAJ->getVelocityInterpolator(curr_end_slam_time)->evaluate();
         std::cout << "[084# ICP DEBUG | Frame " << index_frame << "] " << "ESTIMATED PARAMETER" << std::endl;
         std::cout << "[085# ICP DEBUG | Frame " << index_frame << "] " << "Number of keypoints used in CT-ICP : " << N_matches << std::endl;
         std::cout << "[086# ICP DEBUG | Frame " << index_frame << "] " << "v_begin: " << v_begin.transpose() << std::endl;
