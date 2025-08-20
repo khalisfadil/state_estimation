@@ -654,8 +654,10 @@ namespace  stateestimate{
                 std::cout << "[009# REG DEBUG | Frame " << index_frame << "]" << "ICP failed for frame " << index_frame << std::endl;
 #endif
                 return summary;}
-        } else { // !!!!!!!!!!! this is responsible for initial frame 0 ######################
-
+        } else { 
+            // ##########################################################################
+            // !!!!!!!!!!! this is responsible for initial frame 0 ######################
+            // ##########################################################################
 #ifdef DEBUG
             // [DEBUG] Announce first frame initialization
             std::cout << "[010# REG DEBUG | Frame " << index_frame << "]" << "Performing first frame (index 0) initialization." << std::endl;
