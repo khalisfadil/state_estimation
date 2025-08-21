@@ -328,10 +328,10 @@ namespace  stateestimate{
                     parsed_options.qg_diag(i) = odometry_options["qg_diag"][i].get<double>();
                 }
             }
-            if (odometry_options.contains("Tb2m_init") && odometry_options["Tb2m_init"].is_array() && odometry_options["Tb2m_init"].size() == 16) {
+            if (odometry_options.contains("Tb2w_init") && odometry_options["Tb2w_init"].is_array() && odometry_options["Tb2w_init"].size() == 16) {
                 for (int i = 0; i < 4; ++i) {
                     for (int j = 0; j < 4; ++j) {
-                        parsed_options.Tb2m_init(i, j) = odometry_options["Tb2m_init"][i * 4 + j].get<double>();
+                        parsed_options.Tb2w_init(i, j) = odometry_options["Tb2w_init"][i * 4 + j].get<double>();
                     }
                 }
             }
@@ -389,7 +389,7 @@ namespace  stateestimate{
 
         // --- Wrap file-writing logic in a try-catch block for maximum safety ---
         try {
-            // Eigen::Matrix4d Tl2g = Eigen::Matrix4d::Identity(); //local to global
+            Eigen::Matrix4d Tm2w = options_.Tb2w_init; //local to global
             // Define trajectory file writing task
             auto write_trajectory = [&]() {
                 std::ofstream trajectory_file(trajectory_filename, std::ios::out);
@@ -416,19 +416,20 @@ namespace  stateestimate{
                     // const Eigen::Matrix4d begin_Tb2m = inverse(full_trajectory->getPoseInterpolator(traj_time))->evaluate().matrix();
 
                     const auto Tb2m = full_trajectory->getPoseInterpolator(traj_time)->value().inverse().matrix();
+                    const auto Tb2w = Tm2w * Tb2m;
                     const auto wb2m_inr = full_trajectory->getVelocityInterpolator(traj_time)->value();
 
-                    if ((Tb2m.block<3, 3>(0, 0) * Tb2m.block<3, 3>(0, 0).transpose() - Eigen::Matrix3d::Identity()).norm() > 1e-6) {
+                    if ((Tb2w.block<3, 3>(0, 0) * Tb2w.block<3, 3>(0, 0).transpose() - Eigen::Matrix3d::Identity()).norm() > 1e-6) {
 #ifdef DEBUG
                         std::cerr << "[004# RESULT] CRITICAL: Tm2b rotation matrix is not orthogonal!" << std::endl;
 #endif
                     }
 
                     buffer << traj_time.nanosecs() << " "
-                        << Tb2m(0, 0) << " " << Tb2m(0, 1) << " " << Tb2m(0, 2) << " " << Tb2m(0, 3) << " "
-                        << Tb2m(1, 0) << " " << Tb2m(1, 1) << " " << Tb2m(1, 2) << " " << Tb2m(1, 3) << " "
-                        << Tb2m(2, 0) << " " << Tb2m(2, 1) << " " << Tb2m(2, 2) << " " << Tb2m(2, 3) << " "
-                        << Tb2m(3, 0) << " " << Tb2m(3, 1) << " " << Tb2m(3, 2) << " " << Tb2m(3, 3) << " "
+                        << Tb2w(0, 0) << " " << Tb2w(0, 1) << " " << Tb2w(0, 2) << " " << Tb2w(0, 3) << " "
+                        << Tb2w(1, 0) << " " << Tb2w(1, 1) << " " << Tb2w(1, 2) << " " << Tb2w(1, 3) << " "
+                        << Tb2w(2, 0) << " " << Tb2w(2, 1) << " " << Tb2w(2, 2) << " " << Tb2w(2, 3) << " "
+                        << Tb2w(3, 0) << " " << Tb2w(3, 1) << " " << Tb2w(3, 2) << " " << Tb2w(3, 3) << " "
                         << wb2m_inr(0) << " " << wb2m_inr(1) << " " << wb2m_inr(2) << " "
                         << wb2m_inr(3) << " " << wb2m_inr(4) << " " << wb2m_inr(5) << "\n";
                 }
@@ -444,7 +445,7 @@ namespace  stateestimate{
 #endif
                     return;
                 }
-                map_.getMap(pointcloud_file); // Pass the address of Tl2g // print point in map frame.
+                map_.getMap(pointcloud_file, &Tm2w); // Pass the address of Tm2w // print point in world frame.
                 
             };
 
@@ -477,7 +478,7 @@ namespace  stateestimate{
     // ########################################################################
     
     void lidarodom::initializeInitialPose(const Eigen::Matrix4d& T) {
-        options_.Tb2m_init = T;
+        options_.Tb2w_init = T;
     }
 
     // ########################################################################
@@ -675,6 +676,7 @@ namespace  stateestimate{
             lgmath::se3::Transformation Tm2b;
             lgmath::se3::Transformation Ti2m;
             lgmath::se3::Transformation Tb2s(options_.Tb2s);
+
             Eigen::Matrix<double, 6, 1> wb2m_inr = Eigen::Matrix<double, 6, 1>::Zero();
             Eigen::Matrix<double, 6, 1> b_zero = Eigen::Matrix<double, 6, 1>::Zero();
 
@@ -761,7 +763,7 @@ namespace  stateestimate{
 
         // Step 9: Prepare output summary
         // Set corrected points, rotation, and translation for output
-        summary.corrected_points = keypoints;
+        summary.corrected_points = summary.keypoints;
         summary.Rs2m = traj.end_R;
         summary.ts2m = traj.end_t;
 
