@@ -1643,8 +1643,9 @@ namespace  stateestimate{
             int NUM_STATES = 0;
 #ifdef DEBUG
             const double begin_marg_time = trajectory_vars_.at(to_marginalize_).time.seconds();
-#endif
+
             double end_marg_time = trajectory_vars_.at(to_marginalize_).time.seconds();
+#endif
             // Define the marginalization time based on delay_adding_points
             const double marg_time = trajectory_.at(index_frame - options_.delay_adding_points - 1).end_timestamp;
             Time marg_slam_time(marg_time);
@@ -1653,8 +1654,9 @@ namespace  stateestimate{
                 const auto& VAR = trajectory_vars_.at(i);
                 if (VAR.time <= marg_slam_time) {
                     // Update end marginalization time
-                    end_marg_time = VAR.time.seconds();
 #ifdef DEBUG
+                    end_marg_time = VAR.time.seconds();
+
                         // Check if the variables are valid *before* marginalizing them
                         if(!VAR.Tm2b->value().matrix().allFinite()) {
                            std::cout << "[030# ICP DEBUG | Frame " << index_frame << "] " << "CRITICAL: VAR.Tm2b at index " << i << " is NaN before marginalization!" << std::endl;
