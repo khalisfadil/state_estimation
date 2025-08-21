@@ -649,9 +649,9 @@ namespace  stateestimate{
 #endif
             summary.keypoints = keypoints;
             if (!summary.success) {
-#ifdef DEBUG
+
                 std::cout << "[009# REG DEBUG | Frame " << index_frame << "]" << "ICP failed for frame " << index_frame << std::endl;
-#endif
+
                 return summary;}
         } else { 
             // ##########################################################################
