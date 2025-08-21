@@ -677,7 +677,6 @@ namespace  stateestimate{
             lgmath::se3::Transformation Tm2b;
             lgmath::se3::Transformation Ti2m;
             lgmath::se3::Transformation Tb2s(options_.Tb2s);
-
             Eigen::Matrix<double, 6, 1> wb2m_inr = Eigen::Matrix<double, 6, 1>::Zero();
             Eigen::Matrix<double, 6, 1> b_zero = Eigen::Matrix<double, 6, 1>::Zero();
 
@@ -764,7 +763,7 @@ namespace  stateestimate{
 
         // Step 9: Prepare output summary
         // Set corrected points, rotation, and translation for output
-        summary.corrected_points = summary.keypoints;
+        summary.corrected_points = keypoints;
         summary.Rs2m = traj.end_R;
         summary.ts2m = traj.end_t;
 
