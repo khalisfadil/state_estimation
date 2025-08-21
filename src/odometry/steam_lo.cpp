@@ -389,7 +389,7 @@ namespace  stateestimate{
 
         // --- Wrap file-writing logic in a try-catch block for maximum safety ---
         try {
-            Eigen::Matrix4d Tl2g = options_.Tb2m_init; //local to global
+            // Eigen::Matrix4d Tl2g = Eigen::Matrix4d::Identity(); //local to global
             // Define trajectory file writing task
             auto write_trajectory = [&]() {
                 std::ofstream trajectory_file(trajectory_filename, std::ios::out);
@@ -415,22 +415,20 @@ namespace  stateestimate{
                     Time traj_time(time);
                     // const Eigen::Matrix4d begin_Tb2m = inverse(full_trajectory->getPoseInterpolator(traj_time))->evaluate().matrix();
 
-                    const auto Tm2b = full_trajectory->getPoseInterpolator(traj_time)->value().matrix();
-                    const auto Tb2ml = Tm2b.inverse();
-                    const auto Tb2mg = Tl2g * Tb2ml;
+                    const auto Tb2m = full_trajectory->getPoseInterpolator(traj_time)->value().matrix().inverse();
                     const auto wb2m_inr = full_trajectory->getVelocityInterpolator(traj_time)->value();
 
-                    if ((Tm2b.block<3, 3>(0, 0) * Tm2b.block<3, 3>(0, 0).transpose() - Eigen::Matrix3d::Identity()).norm() > 1e-6) {
+                    if ((Tb2m.block<3, 3>(0, 0) * Tb2m.block<3, 3>(0, 0).transpose() - Eigen::Matrix3d::Identity()).norm() > 1e-6) {
 #ifdef DEBUG
                         std::cerr << "[004# RESULT] CRITICAL: Tm2b rotation matrix is not orthogonal!" << std::endl;
 #endif
                     }
 
                     buffer << traj_time.nanosecs() << " "
-                        << Tb2mg(0, 0) << " " << Tb2mg(0, 1) << " " << Tb2mg(0, 2) << " " << Tb2mg(0, 3) << " "
-                        << Tb2mg(1, 0) << " " << Tb2mg(1, 1) << " " << Tb2mg(1, 2) << " " << Tb2mg(1, 3) << " "
-                        << Tb2mg(2, 0) << " " << Tb2mg(2, 1) << " " << Tb2mg(2, 2) << " " << Tb2mg(2, 3) << " "
-                        << Tb2mg(3, 0) << " " << Tb2mg(3, 1) << " " << Tb2mg(3, 2) << " " << Tb2mg(3, 3) << " "
+                        << Tb2m(0, 0) << " " << Tb2m(0, 1) << " " << Tb2m(0, 2) << " " << Tb2m(0, 3) << " "
+                        << Tb2m(1, 0) << " " << Tb2m(1, 1) << " " << Tb2m(1, 2) << " " << Tb2m(1, 3) << " "
+                        << Tb2m(2, 0) << " " << Tb2m(2, 1) << " " << Tb2m(2, 2) << " " << Tb2m(2, 3) << " "
+                        << Tb2m(3, 0) << " " << Tb2m(3, 1) << " " << Tb2m(3, 2) << " " << Tb2m(3, 3) << " "
                         << wb2m_inr(0) << " " << wb2m_inr(1) << " " << wb2m_inr(2) << " "
                         << wb2m_inr(3) << " " << wb2m_inr(4) << " " << wb2m_inr(5) << "\n";
                 }
@@ -446,7 +444,7 @@ namespace  stateestimate{
 #endif
                     return;
                 }
-                map_.getMap(pointcloud_file, &Tl2g); // Pass the address of Tl2g // print point in map frame.
+                map_.getMap(pointcloud_file); // Pass the address of Tl2g // print point in map frame.
                 
             };
 
