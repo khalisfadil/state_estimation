@@ -415,7 +415,7 @@ namespace  stateestimate{
                     Time traj_time(time);
                     // const Eigen::Matrix4d begin_Tb2m = inverse(full_trajectory->getPoseInterpolator(traj_time))->evaluate().matrix();
 
-                    const auto Tb2m = full_trajectory->getPoseInterpolator(traj_time)->value().matrix().inverse();
+                    const auto Tb2m = full_trajectory->getPoseInterpolator(traj_time)->value().inverse().matrix();
                     const auto wb2m_inr = full_trajectory->getVelocityInterpolator(traj_time)->value();
 
                     if ((Tb2m.block<3, 3>(0, 0) * Tb2m.block<3, 3>(0, 0).transpose() - Eigen::Matrix3d::Identity()).norm() > 1e-6) {
